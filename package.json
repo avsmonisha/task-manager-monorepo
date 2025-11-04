@@ -1,0 +1,17 @@
+{
+  "name": "task-manager-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.6.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter todo-app dev",
+    "build": "pnpm --filter todo-app build",
+    "start": "pnpm --filter todo-app start",
+    "lint": "pnpm --filter todo-app lint",
+    "install:all": "pnpm install"
+  }
+}
