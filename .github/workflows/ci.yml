@@ -1,1 +1,69 @@
 
+name: Node.js CI
+
+on:
+  workflow_dispatch: # Allows manual triggering
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9 # Matches your package.json
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Run linter
+      # This script is defined in your root package.json
+      run: pnpm run lint
+      
+    - name: Run tests
+      # This assumes you have a `test` script in your workspace packages
+      # e.g., in `apps/todo-app/package.json`
+      # This step runs only on pushes to main or PRs from the same repository
+      if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+      run: pnpm --filter todo-app test
+      env:
+        # These environment variables are needed for the tests
+        # These should be configured as GitHub repository secrets
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        CI: true
+
+    - name: Build project
+      # This script is defined in your root package.json
+      # This step runs only on pushes to main or PRs from the same repository
+      if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+      run: pnpm run build
+      env:
+        # Public variables can be set directly
+        # For Next.js, prefix with NEXT_PUBLIC_ to expose to the browser
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        # Build-time secrets can also be used
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    # If you have e2e tests (like Cypress or Playwright), you can add a step for them here.
+    # - name: Run e2e tests
+    #   run: pnpm --filter todo-app test:e2e
